@@ -3,5 +3,7 @@
 using namespace std;
 
 void printHello() {
-  cout << "Hello SLAM" << endl;
+  // cout << "Hello SLAM share lib" << endl;
+  int a = 1+1;
+  int b = 1+1;
 }
