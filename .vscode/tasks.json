@@ -8,8 +8,9 @@
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
-                "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
+                // "-o",
+                // "${fileDirname}/${fileBasenameNoExtension}",
+                "-I", "/usr/include/eigen3",
             ],
             "options": {
                 "cwd": "${fileDirname}"
