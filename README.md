@@ -18,4 +18,9 @@
 - 调试模式
     - set(CMAKE_BUILD_TYPE "Debug")
 
+- opencv
+    export PKG_CONFIG_PATH=/Extra/lwy/slam/opencv/lib/pkgconfig
+    export LD_LIBRARY_PATH=/Extra/lwy/slam/opencv/lib
+
+    sudo apt-get install build-essential libgtk2.0-dev libvtk5-dev libjpeg-dev libtiff4-dev libjasper-dev libopenexr-dev libtbb-dev
 
