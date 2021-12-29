@@ -11,9 +11,10 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/build/${fileBasenameNoExtension}",
+            // "args": ["-I","../*"],
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${fileDirname}",
+            "cwd": "${fileDirname}/build/", // 调试工程所在路径
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",

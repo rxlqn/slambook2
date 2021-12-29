@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
             // 根据双目模型计算 point 的位置
             double x = (u - cx) / fx;
             double y = (v - cy) / fy;
+            // 深度 z
             double depth = fx * b / (disparity.at<float>(v, u));
             point[0] = x * depth;
             point[1] = y * depth;
