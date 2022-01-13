@@ -40,11 +40,11 @@ class CurveFittingEdge : public g2o::BaseUnaryEdge<1, double, CurveFittingVertex
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-  CurveFittingEdge(double x) : BaseUnaryEdge(), _x(x) {}
+  CurveFittingEdge(double x) : BaseUnaryEdge(), _x(x) {}  // 构造函数
 
   // 计算曲线模型误差
-  virtual void computeError() override {
-    const CurveFittingVertex *v = static_cast<const CurveFittingVertex *> (_vertices[0]);
+  virtual void computeError() override {    // override是c++11 标识符，用于覆盖基类虚函数
+    const CurveFittingVertex *v = static_cast<const CurveFittingVertex *> (_vertices[0]); // static_cast 强制类型转换
     const Eigen::Vector3d abc = v->estimate();
     _error(0, 0) = _measurement - std::exp(abc(0, 0) * _x * _x + abc(1, 0) * _x + abc(2, 0));
   }

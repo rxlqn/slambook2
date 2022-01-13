@@ -48,6 +48,9 @@
         "utility": "cpp",
         "typeinfo": "cpp",
         "core": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "complex": "cpp",
+        "bitset": "cpp",
+        "matrixfunctions": "cpp"
     }
 }

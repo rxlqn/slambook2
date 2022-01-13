@@ -7,7 +7,7 @@
 using namespace std;
 using namespace cv;
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) {   //argc count参数个数，argv vector 是传入参数
   if (argc != 3) {
     cout << "usage: feature_extraction img1 img2" << endl;
     return 1;
