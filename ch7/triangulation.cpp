@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
     Point2d pt1_cam = pixel2cam(keypoints_1[matches[i].queryIdx].pt, K);
     cv::circle(img1_plot, keypoints_1[matches[i].queryIdx].pt, 2, get_color(depth1), 2);
 
-    // 第二个图
+    // 第二个图 重投影points点
     Mat pt2_trans = R * (Mat_<double>(3, 1) << points[i].x, points[i].y, points[i].z) + t;
     float depth2 = pt2_trans.at<double>(2, 0);
     cv::circle(img2_plot, keypoints_2[matches[i].trainIdx].pt, 2, get_color(depth2), 2);

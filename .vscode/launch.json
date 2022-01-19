@@ -12,7 +12,7 @@
             "request": "launch",
             "program": "${fileDirname}/build/${fileBasenameNoExtension}",
             // "args": ["-I","../*"],
-            "args": [],
+            "args": ["../1.png","../2.png","../1_depth.png","../2_depth.png"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}/build/", // 调试工程所在路径
             "environment": [],

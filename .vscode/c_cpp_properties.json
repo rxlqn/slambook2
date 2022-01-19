@@ -7,6 +7,7 @@
                 "/usr/include/eigen3",
                 "../3rdparty/**",
                 "../**"
+                // "/Extra/lwy/slam/opencv-3.4.16/modules/core/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -46,6 +46,7 @@ void bundleAdjustmentGaussNewton(
 );
 
 int main(int argc, char **argv) {
+  cout << argc;
   if (argc != 5) {
     cout << "usage: pose_estimation_3d2d img1 img2 depth1 depth2" << endl;
     return 1;
@@ -58,27 +59,30 @@ int main(int argc, char **argv) {
   vector<KeyPoint> keypoints_1, keypoints_2;
   vector<DMatch> matches;
   find_feature_matches(img_1, img_2, keypoints_1, keypoints_2, matches);
-  cout << "一共找到了" << matches.size() << "组匹配点" << endl;
+  // cout << "一共找到了" << matches.size() << "组匹配点" << endl;
 
   // 建立3D点
   Mat d1 = imread(argv[3], CV_LOAD_IMAGE_UNCHANGED);       // 深度图为16位无符号数，单通道图像
   Mat K = (Mat_<double>(3, 3) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1);
   vector<Point3f> pts_3d;
   vector<Point2f> pts_2d;
-  for (DMatch m:matches) {
-    ushort d = d1.ptr<unsigned short>(int(keypoints_1[m.queryIdx].pt.y))[int(keypoints_1[m.queryIdx].pt.x)];
+  for (DMatch m:matches) {    // 从深度图1中找到匹配点对应的深度
+    ushort d = d1.ptr<unsigned short>(int(keypoints_1[m.queryIdx].pt.y))[int(keypoints_1[m.queryIdx].pt.x)];  // 行 列
     if (d == 0)   // bad depth
       continue;
     float dd = d / 5000.0;
+    // 像素坐标转换到相机坐标
     Point2d p1 = pixel2cam(keypoints_1[m.queryIdx].pt, K);
+    // 加上深度坐标
     pts_3d.push_back(Point3f(p1.x * dd, p1.y * dd, dd));
+    // 第二幅图对应特征点的坐标
     pts_2d.push_back(keypoints_2[m.trainIdx].pt);
   }
 
   cout << "3d-2d pairs: " << pts_3d.size() << endl;
 
   chrono::steady_clock::time_point t1 = chrono::steady_clock::now();
-  Mat r, t;
+  Mat r, t; // 旋转向量和平移向量
   solvePnP(pts_3d, pts_2d, K, Mat(), r, t, false); // 调用OpenCV 的 PnP 求解，可选择EPNP，DLS等方法
   Mat R;
   cv::Rodrigues(r, R); // r为旋转向量形式，用Rodrigues公式转换为矩阵
@@ -89,6 +93,8 @@ int main(int argc, char **argv) {
   cout << "R=" << endl << R << endl;
   cout << "t=" << endl << t << endl;
 
+  ///////////////////////////////////////////////////////////
+  // bundle adjustment 高斯优化  位姿和特征点同时优化 
   VecVector3d pts_3d_eigen;
   VecVector2d pts_2d_eigen;
   for (size_t i = 0; i < pts_3d.size(); ++i) {
@@ -189,14 +195,17 @@ void bundleAdjustmentGaussNewton(
     cost = 0;
     // compute cost
     for (int i = 0; i < points_3d.size(); i++) {
-      Eigen::Vector3d pc = pose * points_3d[i];
+      // 相机坐标
+      Eigen::Vector3d pc = pose * points_3d[i];   
       double inv_z = 1.0 / pc[2];
       double inv_z2 = inv_z * inv_z;
+      // 重投影
       Eigen::Vector2d proj(fx * pc[0] / pc[2] + cx, fy * pc[1] / pc[2] + cy);
-
+    // 计算误差
       Eigen::Vector2d e = points_2d[i] - proj;
 
       cost += e.squaredNorm();
+      // 重投影误差关于相机位姿的一阶导数，解析解 没有对空间点的位置做优化
       Eigen::Matrix<double, 2, 6> J;
       J << -fx * inv_z,
         0,
@@ -211,10 +220,11 @@ void bundleAdjustmentGaussNewton(
         -fy * pc[0] * pc[1] * inv_z2,
         -fy * pc[0] * inv_z;
 
+      // 二阶近似导数
       H += J.transpose() * J;
       b += -J.transpose() * e;
     }
-
+    // cholesky 分解解方程
     Vector6d dx;
     dx = H.ldlt().solve(b);
 
@@ -252,7 +262,7 @@ public:
     _estimate = Sophus::SE3d();
   }
 
-  /// left multiplication on SE3
+  /// left multiplication on SE3   左乘扰动量更新
   virtual void oplusImpl(const double *update) override {
     Eigen::Matrix<double, 6, 1> update_eigen;
     update_eigen << update[0], update[1], update[2], update[3], update[4], update[5];
@@ -264,20 +274,23 @@ public:
   virtual bool write(ostream &out) const override {}
 };
 
-class EdgeProjection : public g2o::BaseUnaryEdge<2, Eigen::Vector2d, VertexPose> {
+// 继承1元边 测量值两维 只优化位姿
+class EdgeProjection : public g2o::BaseUnaryEdge<2, Eigen::Vector2d, VertexPose> {  
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
   EdgeProjection(const Eigen::Vector3d &pos, const Eigen::Matrix3d &K) : _pos3d(pos), _K(K) {}
 
+  // 误差计算
   virtual void computeError() override {
     const VertexPose *v = static_cast<VertexPose *> (_vertices[0]);
     Sophus::SE3d T = v->estimate();
     Eigen::Vector3d pos_pixel = _K * (T * _pos3d);
     pos_pixel /= pos_pixel[2];
-    _error = _measurement - pos_pixel.head<2>();
+    _error = _measurement - pos_pixel.head<2>();  // 观测值减实际像素位置（重投影）
   }
 
+  // 线性增量函数
   virtual void linearizeOplus() override {
     const VertexPose *v = static_cast<VertexPose *> (_vertices[0]);
     Sophus::SE3d T = v->estimate();
@@ -290,7 +303,7 @@ public:
     double Y = pos_cam[1];
     double Z = pos_cam[2];
     double Z2 = Z * Z;
-    _jacobianOplusXi
+    _jacobianOplusXi              // 雅可比矩阵
       << -fx / Z, 0, fx * X / Z2, fx * X * Y / Z2, -fx - fx * X * X / Z2, fx * Y / Z,
       0, -fy / Z, fy * Y / (Z * Z), fy + fy * Y * Y / Z2, -fy * X * Y / Z2, -fy * X / Z;
   }

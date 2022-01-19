@@ -202,7 +202,7 @@ Point2d pixel2cam(const Point2d &p, const Mat &K) {
 
 void pose_estimation_3d3d(const vector<Point3f> &pts1,
                           const vector<Point3f> &pts2,
-                          Mat &R, Mat &t) {
+                           Mat &R, Mat &t) {
   Point3f p1, p2;     // center of mass
   int N = pts1.size();
   for (int i = 0; i < N; i++) {
@@ -232,6 +232,7 @@ void pose_estimation_3d3d(const vector<Point3f> &pts1,
   cout << "U=" << U << endl;
   cout << "V=" << V << endl;
 
+  // 旋转矩阵
   Eigen::Matrix3d R_ = U * (V.transpose());
   if (R_.determinant() < 0) {
     R_ = -R_;

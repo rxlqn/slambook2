@@ -46,21 +46,22 @@ int main(int argc, char **argv) {
   Mat R, t;
   pose_estimation_2d2d(keypoints_1, keypoints_2, matches, R, t);
 
-  //-- 验证E=t^R*scale
-  Mat t_x =
+  //-- 验证E=t^R*scale  // t的反对称矩阵t^
+  Mat t_x =   
     (Mat_<double>(3, 3) << 0, -t.at<double>(2, 0), t.at<double>(1, 0),
       t.at<double>(2, 0), 0, -t.at<double>(0, 0),
       -t.at<double>(1, 0), t.at<double>(0, 0), 0);
 
   cout << "t^R=" << endl << t_x * R << endl;
 
-  //-- 验证对极约束
+  //-- 验证对极约束 内参
   Mat K = (Mat_<double>(3, 3) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1);
   for (DMatch m: matches) {
     Point2d pt1 = pixel2cam(keypoints_1[m.queryIdx].pt, K);
     Mat y1 = (Mat_<double>(3, 1) << pt1.x, pt1.y, 1);
     Point2d pt2 = pixel2cam(keypoints_2[m.trainIdx].pt, K);
     Mat y2 = (Mat_<double>(3, 1) << pt2.x, pt2.y, 1);
+    // 对极约束为0
     Mat d = y2.t() * t_x * R * y1;
     cout << "epipolar constraint = " << d << endl;
   }
@@ -114,6 +115,7 @@ void find_feature_matches(const Mat &img_1, const Mat &img_2,
   }
 }
 
+// 像素转相机坐标 齐次到非齐次转换
 Point2d pixel2cam(const Point2d &p, const Mat &K) {
   return Point2d
     (
@@ -156,7 +158,7 @@ void pose_estimation_2d2d(std::vector<KeyPoint> keypoints_1,
   homography_matrix = findHomography(points1, points2, RANSAC, 3);
   cout << "homography_matrix is " << endl << homography_matrix << endl;
 
-  //-- 从本质矩阵中恢复旋转和平移信息.
+  //-- 从 本质矩阵 中恢复旋转和平移信息.
   // 此函数仅在Opencv3中提供
   recoverPose(essential_matrix, points1, points2, R, t, focal_length, principal_point);
   cout << "R is " << endl << R << endl;

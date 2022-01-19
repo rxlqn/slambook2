@@ -20,7 +20,7 @@ int main(int argc, char **argv) {   //argc count参数个数，argv vector 是�
   //-- 初始化
   std::vector<KeyPoint> keypoints_1, keypoints_2;
   Mat descriptors_1, descriptors_2;
-  Ptr<FeatureDetector> detector = ORB::create();
+  Ptr<FeatureDetector> detector = ORB::create();      // 模板类型
   Ptr<DescriptorExtractor> descriptor = ORB::create();
   Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create("BruteForce-Hamming");
 
