@@ -12,9 +12,9 @@ double fx = 718.856, fy = 718.856, cx = 607.1928, cy = 185.2157;
 // baseline
 double baseline = 0.573;
 // paths
-string left_file = "./left.png";
-string disparity_file = "./disparity.png";
-boost::format fmt_others("./%06d.png");    // other files
+string left_file = "../left.png";
+string disparity_file = "../disparity.png";
+boost::format fmt_others("../%06d.png");    // other files
 
 // useful typedefs
 typedef Eigen::Matrix<double, 6, 6> Matrix6d;
@@ -148,12 +148,13 @@ int main(int argc, char **argv) {
     for (int i = 1; i < 6; i++) {  // 1~10
         cv::Mat img = cv::imread((fmt_others % i).str(), 0);
         // try single layer by uncomment this line
-        // DirectPoseEstimationSingleLayer(left_img, img, pixels_ref, depth_ref, T_cur_ref);
-        DirectPoseEstimationMultiLayer(left_img, img, pixels_ref, depth_ref, T_cur_ref);
+        DirectPoseEstimationSingleLayer(left_img, img, pixels_ref, depth_ref, T_cur_ref);
+        // DirectPoseEstimationMultiLayer(left_img, img, pixels_ref, depth_ref, T_cur_ref);
     }
     return 0;
 }
 
+// G-N方法解
 void DirectPoseEstimationSingleLayer(
     const cv::Mat &img1,
     const cv::Mat &img2,
@@ -227,15 +228,18 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range) {
     Vector6d bias = Vector6d::Zero();
     double cost_tmp = 0;
 
+    // 遍历所有的选中点
     for (size_t i = range.start; i < range.end; i++) {
 
         // compute the projection in the second image
+        // 原图的2d点转3d
         Eigen::Vector3d point_ref =
             depth_ref[i] * Eigen::Vector3d((px_ref[i][0] - cx) / fx, (px_ref[i][1] - cy) / fy, 1);
         Eigen::Vector3d point_cur = T21 * point_ref;
         if (point_cur[2] < 0)   // depth invalid
             continue;
 
+        // 重投影存入projection
         float u = fx * point_cur[0] / point_cur[2] + cx, v = fy * point_cur[1] / point_cur[2] + cy;
         if (u < half_patch_size || u > img2.cols - half_patch_size || v < half_patch_size ||
             v > img2.rows - half_patch_size)
@@ -249,12 +253,14 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range) {
         // and compute error and jacobian
         for (int x = -half_patch_size; x <= half_patch_size; x++)
             for (int y = -half_patch_size; y <= half_patch_size; y++) {
-
+                
+                // 重投影的光度误差
                 double error = GetPixelValue(img1, px_ref[i][0] + x, px_ref[i][1] + y) -
                                GetPixelValue(img2, u + x, v + y);
                 Matrix26d J_pixel_xi;
                 Eigen::Vector2d J_img_pixel;
 
+                // (重投影误差)投影方程对相机位姿李代数的导数
                 J_pixel_xi(0, 0) = fx * Z_inv;
                 J_pixel_xi(0, 1) = 0;
                 J_pixel_xi(0, 2) = -fx * X * Z2_inv;
@@ -269,6 +275,7 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range) {
                 J_pixel_xi(1, 4) = fy * X * Y * Z2_inv;
                 J_pixel_xi(1, 5) = fy * X * Z_inv;
 
+                // u处像素梯度
                 J_img_pixel = Eigen::Vector2d(
                     0.5 * (GetPixelValue(img2, u + 1 + x, v + y) - GetPixelValue(img2, u - 1 + x, v + y)),
                     0.5 * (GetPixelValue(img2, u + x, v + 1 + y) - GetPixelValue(img2, u + x, v - 1 + y))
@@ -292,6 +299,8 @@ void JacobianAccumulator::accumulate_jacobian(const cv::Range &range) {
     }
 }
 
+
+// 金字塔
 void DirectPoseEstimationMultiLayer(
     const cv::Mat &img1,
     const cv::Mat &img2,
